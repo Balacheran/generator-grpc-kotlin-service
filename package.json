@@ -1,0 +1,26 @@
+{
+  "name": "generator-grpc-kotlin-service",
+  "version": "1.0.0",
+  "main": "index.js",
+  "files": [
+    "generators"
+  ],
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "yeoman-generator",
+    "kotlin",
+    "grpc",
+    "microservice"
+  ],
+  "author": "",
+  "license": "MIT",
+  "description": "Yeoman generator for gRPC Kotlin microservices",
+  "dependencies": {
+    "yeoman-generator": "^5.8.0",
+    "chalk": "^4.1.2",
+    "yosay": "^2.0.2",
+    "mkdirp": "^3.0.1"
+  }
+}
