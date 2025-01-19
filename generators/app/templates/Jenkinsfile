@@ -1,0 +1,48 @@
+pipeline {
+    agent any
+
+    environment {
+        GRADLE_USER_HOME = "${WORKSPACE}/.gradle"
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Lint') {
+            steps {
+                sh './gradlew ktlintCheck'
+                sh './gradlew detekt'
+            }
+        }
+
+        stage('Test') {
+            steps {
+                sh './gradlew test'
+            }
+            post {
+                always {
+                    junit '**/build/test-results/test/*.xml'
+                }
+            }
+        }
+
+        stage('Build') {
+            steps {
+                sh './gradlew build'
+            }
+        }
+
+        stage('Deploy') {
+            when {
+                branch 'main'
+            }
+            steps {
+                sh './deploy.sh'
+            }
+        }
+    }
+}

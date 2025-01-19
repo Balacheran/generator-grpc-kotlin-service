@@ -15,8 +15,7 @@ const GrpcKotlinGenerator = class extends Generator {
   }
 
   async prompting() {
-    this.answers = await this.prompt([
-      {
+    this.answers = await this.prompt([{
         type: 'input',
         name: 'projectName',
         message: 'What is your project name?',
@@ -33,6 +32,42 @@ const GrpcKotlinGenerator = class extends Generator {
         name: 'includeFirebase',
         message: 'Would you like to include Firebase Authentication?',
         default: false
+      },
+      {
+        type: 'confirm',
+        name: 'includeLinting',
+        message: 'Would you like to include ktlint for code linting?',
+        default: true
+      },
+      {
+        type: 'confirm',
+        name: 'includeTests',
+        message: 'Would you like to include unit tests with JUnit and Jenkins configuration?',
+        default: true
+      },
+      {
+        type: 'confirm',
+        name: 'includeInterceptors',
+        message: 'Would you like to include gRPC interceptors for logging?',
+        default: true
+      },
+      {
+        type: 'confirm',
+        name: 'includeTracing',
+        message: 'Would you like to include distributed tracing support?',
+        default: true
+      },
+      {
+        type: 'confirm',
+        name: 'includeDeployment',
+        message: 'Would you like to include deployment scripts?',
+        default: true
+      },
+      {
+        type: 'confirm',
+        name: 'includeFishtagLogging',
+        message: 'Would you like to include Fishtag support in logging?',
+        default: true
       }
     ]);
   }
@@ -42,10 +77,10 @@ const GrpcKotlinGenerator = class extends Generator {
 
     // Create project structure
     this._createDirectories(packagePath);
-    
+
     // Copy template files
     this._copyTemplateFiles(packagePath);
-    
+
     // Copy binary files
     this._copyBinaryFiles();
   }
@@ -73,6 +108,22 @@ const GrpcKotlinGenerator = class extends Generator {
       'gradle.properties'
     ];
 
+    if (this.answers.includeInterceptors) {
+      this._copyInterceptors(packagePath);
+    }
+
+    if (this.answers.includeTracing) {
+      this._copyTracingConfig(packagePath);
+    }
+
+    if (this.answers.includeTests) {
+      this._copyTests(packagePath);
+    }
+
+    if (this.answers.includeDeployment) {
+      this._copyDeploymentFiles();
+    }
+
     buildFiles.forEach(file => {
       this.fs.copyTpl(
         this.templatePath(file),
@@ -94,8 +145,8 @@ const GrpcKotlinGenerator = class extends Generator {
       this.answers
     );
 
-     // Copy Client.kt
-     this.fs.copyTpl(
+    // Copy Client.kt
+    this.fs.copyTpl(
       this.templatePath('src/main/kotlin/Client.kt'),
       this.destinationPath(`src/main/kotlin/${packagePath}/Client.kt`),
       this.answers
@@ -109,6 +160,46 @@ const GrpcKotlinGenerator = class extends Generator {
     );
   }
 
+  _copyInterceptors(packagePath) {
+    this.fs.copyTpl(
+      this.templatePath('src/main/kotlin/interceptors/LoggingInterceptor.kt'),
+      this.destinationPath(`src/main/kotlin/${packagePath}/interceptors/LoggingInterceptor.kt`),
+      this.answers
+    );
+  }
+
+  _copyTracingConfig(packagePath) {
+    this.fs.copyTpl(
+      this.templatePath('src/main/kotlin/config/TracingConfig.kt'),
+      this.destinationPath(`src/main/kotlin/${packagePath}/config/TracingConfig.kt`),
+      this.answers
+    );
+  }
+
+  _copyTests(packagePath) {
+    this.fs.copyTpl(
+      this.templatePath('src/test/kotlin/ServerTest.kt'),
+      this.destinationPath(`src/test/kotlin/${packagePath}/ServerTest.kt`),
+      this.answers
+    );
+  }
+
+  _copyDeploymentFiles() {
+    this.fs.copyTpl(
+      this.templatePath('Jenkinsfile'),
+      this.destinationPath('Jenkinsfile'),
+      this.answers
+    );
+
+    this.fs.copyTpl(
+      this.templatePath('deploy.sh'),
+      this.destinationPath('deploy.sh'),
+      this.answers
+    );
+
+    // Make deploy.sh executable
+    this.spawnCommand('chmod', ['+x', 'deploy.sh']);
+  }
   _copyBinaryFiles() {
     // Copy gradle wrapper jar (binary)
     this.fs.copy(
@@ -133,7 +224,7 @@ const GrpcKotlinGenerator = class extends Generator {
     if (process.platform !== 'win32') {
       this.spawnCommand('chmod', ['+x', 'gradlew']);
     }
-    
+
     this.log(chalk.green('\nProject generated successfully!'));
     this.log('\nTo get started:');
     this.log(chalk.cyan('\n  ./gradlew build'));

@@ -1,9 +1,10 @@
-// templates/build.gradle.kts
 import com.google.protobuf.gradle.*
 
 plugins {
     kotlin("jvm") version "1.6.10"
     id("com.google.protobuf") version "0.8.18"
+    id("org.jlleitschuh.gradle.ktlint") version "10.2.0"
+    id("io.gitlab.arturbosch.detekt") version "1.19.0"
     application
 }
 
@@ -19,6 +20,7 @@ val grpcVersion = "1.44.0"
 val grpcKotlinVersion = "1.2.1"
 val protobufVersion = "3.19.4"
 val coroutinesVersion = "1.6.0"
+val openTelemetryVersion = "1.12.0"
 
 dependencies {
     implementation(kotlin("stdlib"))
@@ -40,6 +42,27 @@ dependencies {
     <% if (includeFirebase) { %>
     // Firebase
     implementation("com.google.firebase:firebase-admin:9.1.1")
+    <% } %>
+
+     <% if (includeTests) { %>
+    // Testing
+    testImplementation("org.junit.jupiter:junit-jupiter:5.8.2")
+    testImplementation("io.mockk:mockk:1.12.2")
+    testImplementation("org.assertj:assertj-core:3.22.0")
+    <% } %>
+
+    <% if (includeTracing) { %>
+    // Tracing
+    implementation("io.opentelemetry:opentelemetry-api:$openTelemetryVersion")
+    implementation("io.opentelemetry:opentelemetry-sdk:$openTelemetryVersion")
+    implementation("io.opentelemetry:opentelemetry-extension-kotlin:$openTelemetryVersion")
+    implementation("io.opentelemetry:opentelemetry-exporter-jaeger:$openTelemetryVersion")
+    <% } %>
+
+    <% if (includeFishtagLogging) { %>
+    // Logging
+    implementation("ch.qos.logback:logback-classic:1.2.11")
+    implementation("net.logstash.logback:logstash-logback-encoder:7.0.1")
     <% } %>
 }
 
@@ -82,6 +105,32 @@ sourceSets {
         }
     }
 }
+
+<% if (includeLinting) { %>
+ktlint {
+    verbose.set(true)
+    outputToConsole.set(true)
+    reporters {
+        reporter(org.jlleitschuh.gradle.ktlint.reporter.ReporterType.CHECKSTYLE)
+        reporter(org.jlleitschuh.gradle.ktlint.reporter.ReporterType.HTML)
+    }
+}
+
+detekt {
+    buildUponDefaultConfig = true
+    allRules = false
+    config = files("$projectDir/config/detekt.yml")
+}
+<% } %>
+
+<% if (includeTests) { %>
+tasks.test {
+    useJUnitPlatform()
+    testLogging {
+        events("passed", "skipped", "failed")
+    }
+}
+<% } %>
 
 tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().all {
     kotlinOptions {
